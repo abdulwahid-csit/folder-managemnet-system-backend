@@ -3,8 +3,10 @@ const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const authRoutes = require("./routes/authRoutes/authRoute");
+const todoRoutes = require("./routes/todoRoutes/todoRoute")
 const logRequest = require("./utills/logger");
 const authMiddleware = require("./middlewares/auth-middle-ware")
+const folderRoutes = require("./routes/folders/folderRoutes")
 
 // Initialize Express app
 const app = express();
@@ -39,6 +41,8 @@ mongoose
 
 app.use(authMiddleware);
 app.use("/auth", authRoutes);
+app.use("/todo", todoRoutes);
+app.use("/folder", folderRoutes);
 
 // Start the server
 const PORT = process.env.PORT || 3000;

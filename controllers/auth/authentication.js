@@ -23,17 +23,16 @@ const signup = async (req, res) => {
       return res.status(400).json({ message: "Email is already registered" });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
     const newUser = new User({
       firstName,
       lastName,
       email,
       phone,
-      password: hashedPassword,
+      password,
     });
 
     await newUser.save();
-
+    
     const access_token = jwt.sign(
       { userId: newUser._id, email: newUser.email },
       JWT_SECRET,
@@ -80,7 +79,7 @@ const signin = async (req, res) => {
       return res.status(400).json({ message: "Email not found" });
     }
 
-    const isMatch = await bcrypt.compare(loginPassword, user.password);
+     const isMatch = await user.matchPassword(loginPassword);;
     if (!isMatch) {
       return res.status(400).json({ message: "Invalid credentials" });
     }
