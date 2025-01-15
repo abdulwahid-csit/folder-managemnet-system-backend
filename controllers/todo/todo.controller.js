@@ -2,59 +2,60 @@ const Todo = require("../../models/todo/todo.modal")
 
 
 const addTodo = async (req, res) => {
- try {
-   const { title, description, isCompleted, reminderDate } = req.body;
+  try {
+    const { title, description, isCompleted, reminderDate } = req.body;
+    const userId = req.user.userId; // Get userId from the decoded token
 
-   if (!title || !description) {
-     return res.status(400).json({ message: "All fields are required" });
-   }
+    if (!title || !description) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
 
-   const newTodo = new Todo({
-     title,
-     description,
-     reminderDate,
-     isCompleted: isCompleted ? isCompleted : false,
-  
-   });
+    const newTodo = new Todo({
+      title,
+      description,
+      reminderDate,
+      isCompleted: isCompleted ? isCompleted : false,
+      userId, // Attach userId to associate the todo with the logged-in user
+    });
 
-   await newTodo.save();
+    await newTodo.save();
 
-   
-   return res.status(201).json({
-     message: 'Todo addedd successfully.',
-     status_code: 201,
-   });
- } catch (error) {
-   console.error("Error during signup:", error);
-   return res.status(500).json({ message: "Server error, please try again" });
- }
-}
+    return res.status(201).json({
+      message: "Todo added successfully.",  
+      status_code: 201,
+    });
+  } catch (error) {
+    console.error("Error adding todo:", error);
+    return res.status(500).json({ message: "Server error, please try again" });
+  }
+};
+
 
 const getTodos = async (req, res) => {
   try {
-    const { id } = req.params; // id comes from the URL parameter
-    const { status } = req.query; // status comes from query parameters
+    const { id } = req.params;
+    const { status } = req.query;
     const limit = parseInt(req.headers.limit) || 20;
     const search = req.headers.search || "";
+    const userId = req.user.userId; 
 
-    let filter = {};
+    console.log('user id is: ', userId);
 
-    // If an id is provided, return the todo with the specific ID
+    let filter = { userId };
+
     if (id) {
-      const todo = await Todo.findById(id);
+      const todo = await Todo.findOne({ _id: id, userId });
       if (!todo) {
         return res.status(404).json({ message: "Todo not found" });
       }
       return res.status(200).json({ todo });
     }
 
-    // If status is provided, filter todos by the completed status (true or false)
     if (status !== undefined) {
       const filteredStatus = status === "true" ? true : false;
       filter.isCompleted = filteredStatus;
     }
 
-    // If search is provided, search by title or description (case-insensitive)
     if (search) {
       const searchRegex = new RegExp(search, "i");
       filter.$or = [
@@ -64,7 +65,7 @@ const getTodos = async (req, res) => {
     }
 
     // Fetch todos with filters, applying limit
-    const todos = await Todo.find(filter).limit(limit).exec();
+    const todos = await Todo.find(filter).limit(limit).sort({createdAt: -1}).exec();
 
     return res.status(200).json({ todos });
   } catch (error) {
@@ -77,14 +78,22 @@ const getTodos = async (req, res) => {
 
 const getTodoCount = async (req, res) => {
   try {
-    // Count all todos
-    const totalTodos = await Todo.countDocuments();
+    const userId = req.user.userId;
 
-    // Count todos with isCompleted: false
-    const pendingTodos = await Todo.countDocuments({ isCompleted: false });
+    // Count all todos for the logged-in user
+    const totalTodos = await Todo.countDocuments({ userId });
 
-    // Count todos with isCompleted: true
-    const completedTodos = await Todo.countDocuments({ isCompleted: true });
+    // Count todos with isCompleted: false for the logged-in user
+    const pendingTodos = await Todo.countDocuments({
+      userId,
+      isCompleted: false,
+    });
+
+    // Count todos with isCompleted: true for the logged-in user
+    const completedTodos = await Todo.countDocuments({
+      userId,
+      isCompleted: true,
+    });
 
     return res.status(200).json({
       totalTodos,
@@ -99,9 +108,11 @@ const getTodoCount = async (req, res) => {
 
 
 
+
 const updateTodoCompletion = async (req, res) => {
   try {
-    const { id } = req.params; // Get the todo id from the route parameter
+    const { id } = req.body; // Get the todo id from the route parameter
+    console.log("TODO ID IS: ", id)
 
     // Find the todo and check if it's not already marked as completed
     const todo = await Todo.findById(id);
@@ -131,10 +142,35 @@ const updateTodoCompletion = async (req, res) => {
 
 
 
+const deleteTodo = async (req, res) => {
+  try {
+    const { id } = req.params; 
+    console.log("TODO ID IS: ", id);
+
+    // Find the todo by ID and delete it
+    const todo = await Todo.findByIdAndDelete(id);
+
+    if (!todo) {
+      return res.status(404).json({ message: "Todo not found" });
+    }
+
+    return res.status(200).json({
+      message: "Todo deleted successfully.",
+    });
+  } catch (error) {
+    console.error("Error while deleting todo:", error);
+    return res.status(500).json({ message: "Server error, please try again" });
+  }
+};
+
+
+
+
 
 module.exports = {
   addTodo,
   getTodos,
   getTodoCount,
   updateTodoCompletion,
+  deleteTodo,
 };

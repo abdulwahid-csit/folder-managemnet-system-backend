@@ -1,16 +1,13 @@
 const jwt = require("jsonwebtoken");
+const { ConnectionStates } = require("mongoose");
 
-// JWT secret key
-const JWT_SECRET = "fms"; // Replace with process.env.JWT_SECRET for production
+const JWT_SECRET = "fms";
 
-// Middleware to check the validity of the access token
 const authMiddleware = (req, res, next) => {
-  // Skip authentication routes
   if (req.path.startsWith("/auth")) {
     return next(); // Proceed to the next middleware for authentication routes
   }
 
-  // Check if the Authorization header contains a token
   const token = req.header("Authorization")?.replace("Bearer ", "");
 
   if (!token) {
@@ -22,8 +19,9 @@ const authMiddleware = (req, res, next) => {
   // Verify the token
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    req.user = decoded; // Attach user data to the request object
-    next(); // Proceed to the next middleware or route handler
+    req.user = decoded;
+    console.log("User access tokn: ", req.user);
+    next();
   } catch (error) {
     return res
       .status(401)

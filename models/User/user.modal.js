@@ -5,9 +5,13 @@ const bcrypt = require("bcryptjs");
 const userSchema = new mongoose.Schema({
   firstName: { type: String, required: true },
   lastName: { type: String, required: true },
+  username: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   phone: { type: String, required: true },
   password: { type: String, required: true },
+  desegnation: { type: String },
+  department: { type: String },
+  profile_picture: { type: String },
   otp: { type: String }, // Field to store the OTP
   otpExpire: { type: Date },
 });

@@ -3,30 +3,35 @@ const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const authRoutes = require("./routes/authRoutes/authRoute");
-const todoRoutes = require("./routes/todoRoutes/todoRoute")
+const todoRoutes = require("./routes/todoRoutes/todoRoute");
 const logRequest = require("./utills/logger");
-const authMiddleware = require("./middlewares/auth-middle-ware")
-const folderRoutes = require("./routes/folders/folderRoutes")
+const authMiddleware = require("./middlewares/auth-middle-ware");
+const folderRoutes = require("./routes/folders/folderRoutes");
+const folderController = require("./controllers/folders/folder.controller");
+const path = require("path");
 
-// Initialize Express app
 const app = express();
 
-// CORS configuration
+app.use(
+  "/uploaded-files",
+  express.static(path.join(__dirname, "uploaded-files"))
+);
+
 const corsOptions = {
   origin: "http://localhost:4200", // Frontend URL (e.g., React app running on port 3001)
-  methods: "GET,POST",
+  methods: "GET,POST, PUT, DELETE, OPTIONS",
   allowedHeaders: "Content-Type,Authorization",
 };
-
-app.use(logRequest);
 
 // Enable CORS with the specified options
 app.use(cors(corsOptions));
 
+// Log all incoming requests (for debugging purposes)
+app.use(logRequest);
 
-// Middleware
-app.use(bodyParser.json()); // To parse JSON body
-app.use(bodyParser.urlencoded({ extended: true }));
+// Use body-parser for JSON and URL-encoded bodies (not for file upload route)
+app.use(bodyParser.json()); // For JSON requests
+app.use(bodyParser.urlencoded({ extended: true })); // For URL-encoded data
 
 // MongoDB connection
 mongoose
@@ -37,7 +42,7 @@ mongoose
   .then(() => console.log("Connected to MongoDB"))
   .catch((err) => console.log(err));
 
-// Routes
+
 
 app.use(authMiddleware);
 app.use("/auth", authRoutes);

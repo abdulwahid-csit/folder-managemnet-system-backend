@@ -1,18 +1,17 @@
-// authController.js
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
-const User = require("../../models/User/user.modal"); // User model
-const crypto = require("crypto"); // For generating random OTP
+const User = require("../../models/User/user.modal");
+const crypto = require("crypto"); 
 const nodemailer = require("nodemailer");
 
 const JWT_SECRET = "fms";
-const JWT_EXPIRATION_TIME = "1h";
+const JWT_EXPIRATION_TIME = "1y";
 const REFRESH_TOKEN_EXPIRATION_TIME = "7d";
 
 // Signup function
 const signup = async (req, res) => {
   try {
-    const { firstName, lastName, email, phone, password } = req.body;
+    const { firstName, lastName, username, email, phone, password} = req.body;
 
     if (!firstName || !lastName || !email || !phone || !password) {
       return res.status(400).json({ message: "All fields are required" });
@@ -26,9 +25,11 @@ const signup = async (req, res) => {
     const newUser = new User({
       firstName,
       lastName,
+      username,
       email,
       phone,
       password,
+      
     });
 
     await newUser.save();
@@ -52,8 +53,10 @@ const signup = async (req, res) => {
         id: newUser._id,
         first_name: newUser.firstName,
         last_name: newUser.lastName,
+        username: newUser.username,
         email: newUser.email,
         phone: newUser.phone,
+        
       },
       status_code: 201,
     });
@@ -105,8 +108,10 @@ const signin = async (req, res) => {
         last_name: user.lastName,
         email: user.email,
         phone: user.phone,
+        profile_picture: user.profile_picture,
+
       },
-      status_code: 201,
+      status_code: 201, 
     });
   } catch (error) {
     console.error("Error during login:", error);
@@ -233,10 +238,110 @@ const passwordRecovery = async (req, res) => {
   }
 };
 
+
+const getUserDetails = async (req, res) => {
+  try {
+    const { id } = req.query; 
+
+    if (!id) {
+      return res.status(400).json({ message: "User ID is required" });
+    }
+
+    const user = await User.findById(id);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    return res.status(200).json({
+      user: {
+        id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        username: user.username,
+        email: user.email,
+        phone: user.phone,
+        department: user.department,
+        desegnation: user.desegnation,
+        profile_picture: user.profile_picture,
+      },
+      status_code: 200,
+    });
+  } catch (error) {
+    console.error("Error fetching user details:", error);
+    return res.status(500).json({ message: "Server error, please try again" });
+  }
+};
+
+const updateUserDetails = async (req, res) => {
+  try {
+    const {
+      firstName,
+      id,
+      lastName,
+      username,
+      email,
+      phone,
+      department,
+      desegnation,
+    } = req.body;
+
+    const file = req.file.filename; 
+    console.log("File: ", req.file);
+
+    if (!firstName || !lastName || !email || !phone) {
+      return res
+        .status(400)
+        .json({
+          message: "First name, last name, email, and phone are required",
+        });
+    }
+
+    const existingUser = await User.findById(id);
+    if (!existingUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    existingUser.firstName = firstName || existingUser.firstName;
+    existingUser.lastName = lastName || existingUser.lastName;
+    existingUser.username = username || existingUser.username;
+    existingUser.email = email || existingUser.email;
+    existingUser.phone = phone || existingUser.phone;
+    existingUser.department = department || existingUser.department;
+    existingUser.desegnation = desegnation || existingUser.desegnation;
+    existingUser.profile_picture = file || existingUser.file;
+
+    await existingUser.save();
+
+    return res.status(200).json({
+      message: "User details updated successfully",
+      user: {
+        id: existingUser._id,
+        first_name: existingUser.firstName,
+        last_name: existingUser.lastName,
+        username: existingUser.username,
+        email: existingUser.email,
+        phone: existingUser.phone,
+        department: existingUser.department,
+        desegnation: existingUser.desegnation,
+        profile_picture: existingUser.profile_picture,
+      },
+      status_code: 200,
+    });
+  } catch (error) {
+    console.error("Error during updating user details:", error);
+    return res.status(500).json({ message: "Server error, please try again" });
+  }
+};
+
+
+
 module.exports = {
   signup,
   signin,
   forgotPassword,
   verifyOtp,
   passwordRecovery,
+  getUserDetails,
+  updateUserDetails,
 };
