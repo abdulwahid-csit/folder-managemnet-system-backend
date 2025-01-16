@@ -5,9 +5,9 @@ const todoController = require("../../controllers/todo/todo.controller");
 // POST /signup - Calls the signup function in the controller
 router.get("/todo/:id?", todoController.getTodos);
 router.post("/add-todo", todoController.addTodo);
-// router.put("/todo/:id", todoController);
-// router.delete("/todo/:id", todoController);
+// router.put("/todo/:id", todoController.updateTodoCompletion);
+router.delete("/todo/:id?", todoController.deleteTodo);
 router.get("/todo-counts", todoController.getTodoCount);
-router.put("/complete-todo/:id", todoController.updateTodoCompletion);
+router.post("/complete-todo", todoController.updateTodoCompletion);
 
-module.exports = router;
+module.exports = router; 
