@@ -7,10 +7,18 @@ const todoRoutes = require("./routes/todoRoutes/todoRoute");
 const logRequest = require("./utills/logger");
 const authMiddleware = require("./middlewares/auth-middle-ware");
 const folderRoutes = require("./routes/folders/folderRoutes");
-const folderController = require("./controllers/folders/folder.controller");
+const fypRoutes  = require("./routes/fyp/fyp.route")
+const notificationRoutes  = require("./routes/notification/notifications.route")
+// const http = require("http");
+// const socketIo = require("socket.io");
 const path = require("path");
+// const { initSocket } = require('./utills/services/socket.io.service')
 
 const app = express();
+
+// const server = http.createServer(app); // Create an HTTP server
+// const io = socketIo(server); 
+// initSocket(io);
 
 app.use(
   "/uploaded-files",
@@ -23,7 +31,6 @@ const corsOptions = {
   allowedHeaders: "Content-Type,Authorization",
 };
 
-// Enable CORS with the specified options
 app.use(cors(corsOptions));
 
 // Log all incoming requests (for debugging purposes)
@@ -33,7 +40,6 @@ app.use(logRequest);
 app.use(bodyParser.json()); // For JSON requests
 app.use(bodyParser.urlencoded({ extended: true })); // For URL-encoded data
 
-// MongoDB connection
 mongoose
   .connect("mongodb://localhost:27017/folder-management-system", {
     useNewUrlParser: true,
@@ -48,6 +54,8 @@ app.use(authMiddleware);
 app.use("/auth", authRoutes);
 app.use("/todo", todoRoutes);
 app.use("/folder", folderRoutes);
+app.use("/fyp", fypRoutes);
+app.use("/notification", notificationRoutes);
 
 // Start the server
 const PORT = process.env.PORT || 3000;

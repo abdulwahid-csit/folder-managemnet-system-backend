@@ -22,6 +22,7 @@ router.get("/folders", folderController.getFolders);
 router.get("/downloadFile/:fileName", folderController.downloadFile);
 router.get("/shared-folders", folderController.getFoldersSharedWithUser);
 router.post("/share-folder", folderController.shareFolderWithUser);
+router.post("/add-custom-file",upload.single("file"), folderController.addCustomFileToFolder);
 // router.put("/folder", todoController.updateTodoCompletion);
 
 module.exports = router;

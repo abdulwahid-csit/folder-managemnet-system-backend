@@ -112,7 +112,7 @@ const signin = async (req, res) => {
 
       },
       status_code: 201, 
-    });
+    });   
   } catch (error) {
     console.error("Error during login:", error);
     return res.status(500).json({ message: "Server error, please try again" });
@@ -286,7 +286,7 @@ const updateUserDetails = async (req, res) => {
       desegnation,
     } = req.body;
 
-    const file = req.file.filename; 
+    const file = req?.file?.filename; 
     console.log("File: ", req.file);
 
     if (!firstName || !lastName || !email || !phone) {
@@ -309,7 +309,7 @@ const updateUserDetails = async (req, res) => {
     existingUser.phone = phone || existingUser.phone;
     existingUser.department = department || existingUser.department;
     existingUser.desegnation = desegnation || existingUser.desegnation;
-    existingUser.profile_picture = file || existingUser.file;
+    existingUser.profile_picture = file || existingUser.profile_picture;
 
     await existingUser.save();
 
