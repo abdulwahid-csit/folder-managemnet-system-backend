@@ -2,6 +2,9 @@ const Folder = require("../../models/folders/folder.model");
 const path = require("path");
 const fs = require('fs');
 const User = require("./../../models/User/user.modal")
+const Notification = require("../../models/notifications/notification.modal");
+const { sendNotificationEmail } = require('../../utills/services/email.service');
+
 // Add a new batch (folder) with initial details
 const folder = async (req, res) => {
   try {
@@ -135,7 +138,7 @@ const addContentToFolder = async (req, res) => {
       totalMarks,
       lectureDate,
     } = req.body;
-    const file = req.file.filename; // The file uploaded via Multer
+    const file = req?.file?.filename; // The file uploaded via Multer
     console.log("File: ", req.file);
 
     if (!folderId || !contentType || !name) {
@@ -148,10 +151,8 @@ const addContentToFolder = async (req, res) => {
       return res.status(404).json({ message: "Folder not found" });
     }
 
-    // Prepare the file URL (assuming you serve files from the "uploads" directory)
-    const fileUrl = `uploads/${file.filename}`; // Adjust URL as needed
+    const fileUrl = `uploads/${file?.filename}`;
 
-    // Depending on the content type (quiz, assignment, etc.), create the respective object
     let contentData;
     if (contentType === "quizzes") {
       contentData = {
@@ -243,7 +244,7 @@ const updateContentInFolder = async (req, res) => {
       totalMarks,
       lectureDate,
     } = req.body;
-    const file = req.file ? req.file.filename : null; // The file uploaded via Multer (optional)
+    const file = req.file ? req.file?.filename : null; // The file uploaded via Multer (optional)
 
     console.log("File: ", req.file);
 
@@ -413,6 +414,18 @@ const shareFolderWithUser = async (req, res) => {
     // Save the updated folder
     await folder.save();
 
+    // await sendNotificationEmail(email, user.username, folder.batchNo);
+
+    const notification = new Notification({
+      userId: user._id,
+      message: `You have been granted access to the Folder "${folder.batchNo}".`,
+      folderName: folder.batchNo,
+      fypId: folder._id,
+      url: "/layout/folders",
+    });
+
+    await notification.save();
+
     return res.status(200).json({
       message: "Folder shared successfully with the user.",
       folder,
@@ -445,6 +458,53 @@ const getFoldersSharedWithUser = async (req, res) => {
 };
 
 
+const addCustomFileToFolder = async (req, res) => {
+  try {
+    const { folderId, name } = req.body;
+    const file = req?.file?.filename;
+
+    console.log("File: ", req.file);
+
+    if (!folderId || !name) {
+      return res
+        .status(400)
+        .json({ message: "Folder ID and file name are required" });
+    }
+
+    // Check if the folder exists
+    const folder = await Folder.findById(folderId);
+    if (!folder) {
+      return res.status(404).json({ message: "Folder not found" });
+    }
+
+    const fileUrl = `${file}`; 
+
+    const customFileData = {
+        name: name,
+        fileUrl: fileUrl,
+        uploadedAt: Date.now(),
+    };
+
+    if(!fileUrl){
+      delete customFileData.fileUrl;
+    }
+
+    folder.customFiles.push(customFileData);
+
+    // Save the folder with the new custom file
+    await folder.save();
+
+    return res.status(200).json({
+      message: "Custom file added successfully.",
+      status_code: 200,
+      folder,
+    });
+  } catch (error) {
+    console.error("Error while adding custom file to folder:", error);
+    return res.status(500).json({ message: "Server error, please try again" });
+  }
+};
+
 
 
 
@@ -458,5 +518,6 @@ module.exports = {
   updateFolder,
   shareFolderWithUser,
   getFoldersSharedWithUser,
+  addCustomFileToFolder,
 };
 

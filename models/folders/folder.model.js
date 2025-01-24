@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const fileSchema = new mongoose.Schema({
   name: { type: String, required: true }, // Name of the file
-  fileUrl: { type: String, required: true }, // URL or path of the file
+  fileUrl: { type: String }, // URL or path of the file
   uploadedAt: { type: Date, default: Date.now }, // When the file was uploaded
 });
 
@@ -70,6 +70,15 @@ const folderSchema = new mongoose.Schema(
     lectures: [lectureSchema],
     midExame: [midExame],
     finalExam: [finalExam],
+
+    customFiles: [
+      {
+        name: { type: String },
+        fileUrl: { type: String },
+        uploadedAt: { type: Date, default: Date.now },
+      },
+    ],
+
   },
   { timestamps: true }
 );

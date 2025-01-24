@@ -12,7 +12,7 @@ router.post("/password-recovery", authController.passwordRecovery);
 router.get("/details", authController.getUserDetails);
 router.post("/user",upload.single("file"), authController.updateUserDetails);
 
-   
+
 module.exports = router;
 
 module.exports = router;

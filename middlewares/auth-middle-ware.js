@@ -4,8 +4,20 @@ const { ConnectionStates } = require("mongoose");
 const JWT_SECRET = "fms";
 
 const authMiddleware = (req, res, next) => {
+
+   if (
+     req.headers.upgrade &&
+     req.headers.upgrade.toLowerCase() === "websocket"
+   ) {
+     return next(); 
+   }
+
+
   if (req.path.startsWith("/auth")) {
-    return next(); // Proceed to the next middleware for authentication routes
+    return next();
+  }
+  if (req.path.startsWith("/socket.io/")) {
+    return next();
   }
 
   const token = req.header("Authorization")?.replace("Bearer ", "");
