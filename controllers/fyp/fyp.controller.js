@@ -1,8 +1,10 @@
 const Fyp = require("../../models/fyp/fyp.model");
 const User = require("./../../models/User/user.modal");
-const Notification = require('../../models/notifications/notification.modal');
+const Notification = require("../../models/notifications/notification.modal");
 // const { emitEvent, emitToUser } = require('../../utills/services/socket.io.service');
-const { sendNotificationEmail } = require('../../utills/services/email.service');
+const {
+  sendNotificationEmail,
+} = require("../../utills/services/email.service");
 const createFyp = async (req, res) => {
   try {
     // Extract the FYP data from the request body
@@ -13,7 +15,8 @@ const createFyp = async (req, res) => {
       endDate,
       status,
       members,
-      session
+      session,
+      meetings,
     } = req.body;
 
     const userId = req.user.userId;
@@ -38,6 +41,7 @@ const createFyp = async (req, res) => {
       members: members, // Set the array of members
       userId,
       session,
+      meetings,
     });
 
     await newFyp.save();
@@ -54,11 +58,20 @@ const createFyp = async (req, res) => {
   }
 };
 
-
 const getFypsByUser = async (req, res) => {
   try {
     const userId = req.user.userId;
-    const fyps = await Fyp.find({ userId }).sort({ createdAt: -1 }).exec();
+
+      if (req.user.isAdmin) {
+        var fyps = await Fyp.find().sort({ createdAt: -1 }).exec();
+        return res.status(200).json({
+          message: "FYPs retrieved successfully.",
+          status_code: 200,
+          fyps,
+        });
+      }
+
+     fyps = await Fyp.find({ userId }).sort({ createdAt: -1 }).exec();
 
     if (!fyps || fyps.length === 0) {
       return res.status(404).json({ message: "No FYPs found for this user." });
@@ -67,14 +80,13 @@ const getFypsByUser = async (req, res) => {
     return res.status(200).json({
       message: "FYPs retrieved successfully.",
       status_code: 200,
-      fyps, 
+      fyps,
     });
   } catch (error) {
     console.error("Error retrieving FYPs:", error);
     return res.status(500).json({ message: "Server error, please try again." });
   }
 };
-
 
 const getFypById = async (req, res) => {
   try {
@@ -98,12 +110,53 @@ const getFypById = async (req, res) => {
   }
 };
 
+// const addAttendance = async (req, res) => {
+//   const { fypId, studentNames, date, description } = req.body;
 
+// const file = req?.file?.filename;
+//   try {
+//     const fyp = await Fyp.findById(fypId);
+
+//     if (!fyp) {
+//       return res.status(404).json({ message: "FYP not found" });
+//     }
+
+//     const students = studentNames.map(item => {item.name});
+
+//     const attendanceRecord = {
+//       studentNames: students,
+//       date,
+//       description,
+//       file
+//     };
+//     if(!file){
+//         delete attendanceRecord.file;
+//     }
+
+//     fyp.attendance.push(attendanceRecord);
+
+//      studentNames.forEach((memberId) => {
+//        const member = fyp.members.find((m) => m._id.toString() === memberId);
+//        if (member) {
+//          member.attendeceCount += 1;
+//        }
+//      });
+
+//     await fyp.save();
+
+//     return res
+//       .status(200)
+//       .json({ message: "Attendance added successfully", fyp });
+//   } catch (err) {
+//     console.error(err);
+//     return res.status(500).json({ message: "Server error" });
+//   }
+// };
 
 const addAttendance = async (req, res) => {
   const { fypId, studentNames, date, description } = req.body;
 
-const file = req?.file?.filename;
+  const file = req?.file?.filename;
   try {
     const fyp = await Fyp.findById(fypId);
 
@@ -111,29 +164,41 @@ const file = req?.file?.filename;
       return res.status(404).json({ message: "FYP not found" });
     }
 
+    const parsedSstudents = JSON.parse(studentNames);
+    const students = parsedSstudents?.map((item) => item.name).join(', ');
+    console.log("Students are: ", studentNames);
+
     const attendanceRecord = {
-      studentNames,
+      studentNames: students,
       date,
       description,
-      file
+      file,
     };
-    if(!file){
-        delete attendanceRecord.file;
+
+    if (!file) {
+      delete attendanceRecord.file; // Remove file if it's not present
     }
 
     fyp.attendance.push(attendanceRecord);
 
+    parsedSstudents.forEach((student) => {
+      const member = fyp.members.find((m) => m._id.toString() === student._id);
+      if (member) {
+        member.attendeceCount += 1;
+      }
+    });
+
     await fyp.save();
 
-    return res
-      .status(200)
-      .json({ message: "Attendance added successfully", fyp });
+    return res.status(200).json({
+      message: "Attendance added successfully",
+      fyp,
+    });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ message: "Server error" });
   }
 };
-
 
 const deleteFyp = async (req, res) => {
   try {
@@ -157,14 +222,14 @@ const deleteFyp = async (req, res) => {
 };
 const deleteFypAttendence = async (req, res) => {
   try {
-    const  ids  = req.params?.id; 
+    const ids = req.params?.id;
 
-    [idPart, attendanceIdPart] = ids.split(".");;
+    [idPart, attendanceIdPart] = ids.split(".");
 
     const id = idPart;
     const attendanceId = attendanceIdPart;
- 
-    console.log("FYP ID is: ", id); 
+
+    console.log("FYP ID is: ", id);
 
     const fyp = await Fyp.findById(id);
     if (!fyp) {
@@ -190,8 +255,6 @@ const deleteFypAttendence = async (req, res) => {
   }
 };
 
-
-
 const downloadFile = async (req, res) => {
   const fileName = req.params.fileName;
 
@@ -210,7 +273,6 @@ const downloadFile = async (req, res) => {
     }
   });
 };
-
 
 const shareFyp = async (req, res) => {
   try {
@@ -241,18 +303,17 @@ const shareFyp = async (req, res) => {
     folder.sharedWith.push(user._id);
 
     await folder.save();
-    // await sendNotificationEmail(email, user.username, folder.fypName);
+    await sendNotificationEmail(email, user.username, folder.fypName);
 
-     const notification = new Notification({
-       userId: user._id,
-       message: `You have been granted access to the FYP "${folder.fypName}".`,
-       folderName: folder.fypName,
-       fypId: folder._id,
-       url: "/layout/fyp",
-     });
+    const notification = new Notification({
+      userId: user._id,
+      message: `You have been granted access to the FYP "${folder.fypName}".`,
+      folderName: folder.fypName,
+      fypId: folder._id,
+      url: "/layout/fyp",
+    });
 
-     await notification.save();
-
+    await notification.save();
 
     return res.status(200).json({
       message: "Folder shared successfully with the user.",
@@ -264,10 +325,20 @@ const shareFyp = async (req, res) => {
   }
 };
 
-
 const getFypsSharedWithUser = async (req, res) => {
   try {
-    const folders = await Fyp.find({ sharedWith: req.user.userId });
+    if (req.user.isAdmin) {
+      var folders = await Fyp.find({ sharedWith: { $ne: [] } }).sort({ createdAt: -1 }).exec();
+      return res.status(200).json({
+        success: true,
+        message: "All folders retrieved successfully",
+        data: folders,
+      });
+    }
+
+     folders = await Fyp.find({ sharedWith: req.user.userId })
+      .sort({ createdAt: -1 })
+      .exec();
 
     return res.status(200).json({
       success: true,
@@ -286,7 +357,6 @@ const getFypsSharedWithUser = async (req, res) => {
 };
 
 
-
 const updateFyp = async (req, res) => {
   try {
     const {
@@ -297,7 +367,7 @@ const updateFyp = async (req, res) => {
       status,
       members,
       session,
-    } = req.body; 
+    } = req.body;
 
     const { fypId } = req.params;
 
@@ -322,14 +392,14 @@ const updateFyp = async (req, res) => {
       return res.status(404).json({ message: "Folder not found" });
     }
 
-       fyp.fypName = fypName,
-       fyp.fypMembersCount = fypMembersCount,
-       fyp.fypDescription = fypDescription,
-       fyp.endDate = endDate,
-       fyp.status = status,
-       fyp.members = members,
-       fyp.session = session
-       await fyp.save();
+    (fyp.fypName = fypName),
+      (fyp.fypMembersCount = fypMembersCount),
+      (fyp.fypDescription = fypDescription),
+      (fyp.endDate = endDate),
+      (fyp.status = status),
+      (fyp.members = members),
+      (fyp.session = session);
+    await fyp.save();
 
     return res.status(200).json({
       message: "Folder updated successfully.",
@@ -342,7 +412,41 @@ const updateFyp = async (req, res) => {
   }
 };
 
+const updateMembers = async (req, res) => {
+  try {
+    const { fypId } = req.params;
+    const { members } = req.body;
 
+    if (!Array.isArray(members)) {
+      return res.status(400).json({ message: "Members should be an array" });
+    }
+
+    const updatedFyp = await Fyp.findByIdAndUpdate(
+      fypId,
+      { members: members },
+      { new: true }
+    );
+
+    if (!updatedFyp) {
+      return res.status(404).json({ message: "FYP not found" });
+    }
+
+    res.status(200).json({
+      message: "FYP members updated successfully",
+      fyp: updatedFyp,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Error updating FYP members",
+      error: error.message,
+    });
+  }
+};
+
+module.exports = {
+  updateMembers,
+};
 
 module.exports = {
   createFyp,
@@ -355,4 +459,5 @@ module.exports = {
   shareFyp,
   getFypsSharedWithUser,
   updateFyp,
+  updateMembers,
 };

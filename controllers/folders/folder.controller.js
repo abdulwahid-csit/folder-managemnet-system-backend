@@ -1,11 +1,12 @@
 const Folder = require("../../models/folders/folder.model");
 const path = require("path");
-const fs = require('fs');
-const User = require("./../../models/User/user.modal")
+const fs = require("fs");
+const User = require("./../../models/User/user.modal");
 const Notification = require("../../models/notifications/notification.modal");
-const { sendNotificationEmail } = require('../../utills/services/email.service');
+const {
+  sendNotificationEmail,
+} = require("../../utills/services/email.service");
 
-// Add a new batch (folder) with initial details
 const folder = async (req, res) => {
   try {
     const { batchNo, department, courseName, semester, session, timing } =
@@ -55,26 +56,26 @@ const folder = async (req, res) => {
   }
 };
 
-
 const getFolders = async (req, res) => {
   try {
-    const userId = req.user.userId; 
-    const limit = parseInt(req.query.limit) || 20;  
+    const userId = req.user.userId;
+    // const limit = parseInt(req.query.limit) || 200;
+    const limit = parseInt(req.query.limit) || 1000;
     const _id = req.query.id;
     if (_id) {
-      const folders = await Folder.find({_id}).exec();
+      const folders = await Folder.find({ _id }).exec();
       return res.status(200).json({
         message: "Folder fetched successfully.",
         status_code: 200,
         folders,
       });
     }
-    const search = req.query.search || ""; 
+    const search = req.query.search || "";
 
-    let filter = { userId }; 
+    let filter = { userId };
 
     if (search) {
-      const searchRegex = new RegExp(search, "i"); 
+      const searchRegex = new RegExp(search, "i");
       filter.$or = [
         { batchNo: { $regex: searchRegex } },
         { department: { $regex: searchRegex } },
@@ -83,7 +84,19 @@ const getFolders = async (req, res) => {
       ];
     }
 
-    const folders = await Folder.find(filter).limit(limit).sort({createdAt: -1}).exec();
+    var folders;
+    if (req.user.isAdmin) {
+      folders = await Folder.find().sort({ createdAt: -1 }).limit(limit).exec();
+      return res.status(200).json({
+        message: "Folder fetched successfully.",
+        status_code: 200,
+        folders: folders,
+      });
+    }
+    folders = await Folder.find(filter)
+      .limit(limit)
+      .sort({ createdAt: -1 })
+      .exec();
 
     if (!folders || folders.length === 0) {
       return res.status(404).json({ message: "No folders found" });
@@ -99,8 +112,6 @@ const getFolders = async (req, res) => {
     return res.status(500).json({ message: "Server error, please try again" });
   }
 };
-
-
 
 const deleteFolder = async (req, res) => {
   try {
@@ -119,13 +130,6 @@ const deleteFolder = async (req, res) => {
   }
 };
 
-
-
-
-
-
-
-// Function to add content (quiz, assignment, etc.) to an existing folder
 const addContentToFolder = async (req, res) => {
   try {
     // Get the folder ID and content type (quiz, assignment, etc.) from the request body
@@ -230,7 +234,6 @@ const addContentToFolder = async (req, res) => {
   }
 };
 
-
 const updateContentInFolder = async (req, res) => {
   try {
     // Get the folder ID, content type, and content ID from the request body
@@ -249,11 +252,9 @@ const updateContentInFolder = async (req, res) => {
     console.log("File: ", req.file);
 
     if (!folderId || !contentType || !contentId) {
-      return res
-        .status(400)
-        .json({
-          message: "Folder ID, content type, and content ID are required",
-        });
+      return res.status(400).json({
+        message: "Folder ID, content type, and content ID are required",
+      });
     }
 
     // Check if the folder exists
@@ -333,7 +334,6 @@ const downloadFile = async (req, res) => {
   });
 };
 
-
 const updateFolder = async (req, res) => {
   try {
     const { batchNo, department, courseName, semester, session, timing } =
@@ -372,16 +372,13 @@ const updateFolder = async (req, res) => {
     return res.status(200).json({
       message: "Folder updated successfully.",
       status_code: 200,
-      batch: folder, 
+      batch: folder,
     });
   } catch (error) {
     console.error("Error during folder update:", error);
     return res.status(500).json({ message: "Server error, please try again" });
   }
 };
-
-
-
 
 const shareFolderWithUser = async (req, res) => {
   try {
@@ -418,6 +415,7 @@ const shareFolderWithUser = async (req, res) => {
 
     const notification = new Notification({
       userId: user._id,
+      from: user?.firstName + user?.lastName,
       message: `You have been granted access to the Folder "${folder.batchNo}".`,
       folderName: folder.batchNo,
       fypId: folder._id,
@@ -436,15 +434,28 @@ const shareFolderWithUser = async (req, res) => {
   }
 };
 
-
 const getFoldersSharedWithUser = async (req, res) => {
   try {
-    const folders = await Folder.find({ sharedWith: req.user.userId });
+    var folders;
+    if (req.user.isAdmin) {
+      folders = await Folder.find({ sharedWith: { $ne: [] } })
+        .sort({ createdAt: -1 })
+        .exec();
+      return res.status(200).json({
+        success: true,
+        message: "Folders retrieved successfully",
+        data: folders,
+      });
+    }
+
+    folders = await Folder.find({ sharedWith: req.user.userId })
+      .sort({ createdAt: -1 })
+      .exec();
 
     return res.status(200).json({
       success: true,
       message: "Folders retrieved successfully",
-      data: folders
+      data: folders,
     });
   } catch (error) {
     console.error("Error fetching folders:", error);
@@ -456,7 +467,6 @@ const getFoldersSharedWithUser = async (req, res) => {
     });
   }
 };
-
 
 const addCustomFileToFolder = async (req, res) => {
   try {
@@ -477,15 +487,15 @@ const addCustomFileToFolder = async (req, res) => {
       return res.status(404).json({ message: "Folder not found" });
     }
 
-    const fileUrl = `${file}`; 
+    const fileUrl = `${file}`;
 
     const customFileData = {
-        name: name,
-        fileUrl: fileUrl,
-        uploadedAt: Date.now(),
+      name: name,
+      fileUrl: fileUrl,
+      uploadedAt: Date.now(),
     };
 
-    if(!fileUrl){
+    if (!fileUrl) {
       delete customFileData.fileUrl;
     }
 
@@ -504,10 +514,7 @@ const addCustomFileToFolder = async (req, res) => {
     return res.status(500).json({ message: "Server error, please try again" });
   }
 };
-
-
-
-
+  
 module.exports = {
   folder,
   getFolders,
@@ -520,4 +527,3 @@ module.exports = {
   getFoldersSharedWithUser,
   addCustomFileToFolder,
 };
-

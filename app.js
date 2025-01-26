@@ -9,6 +9,8 @@ const authMiddleware = require("./middlewares/auth-middle-ware");
 const folderRoutes = require("./routes/folders/folderRoutes");
 const fypRoutes  = require("./routes/fyp/fyp.route")
 const notificationRoutes  = require("./routes/notification/notifications.route")
+const scheduleRoutes  = require("./routes/schedules/schedule.route")
+const userRoutes = require("./routes/users/user.route")
 // const http = require("http");
 // const socketIo = require("socket.io");
 const path = require("path");
@@ -56,6 +58,8 @@ app.use("/todo", todoRoutes);
 app.use("/folder", folderRoutes);
 app.use("/fyp", fypRoutes);
 app.use("/notification", notificationRoutes);
+app.use("/schedule", scheduleRoutes);
+app.use("/user", userRoutes);
 
 // Start the server
 const PORT = process.env.PORT || 3000;

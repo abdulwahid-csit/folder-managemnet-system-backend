@@ -31,6 +31,7 @@ const todoSchema = new mongoose.Schema(
       ref: "User", // Reference to the User model
       required: true,
     },
+    createdAt: { type: Date, default: Date.now },
   },
   { timestamps: true }
 );
