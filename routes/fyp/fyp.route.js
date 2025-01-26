@@ -12,6 +12,7 @@ const {
   shareFyp,
   getFypsSharedWithUser,
   updateFyp,
+  updateMembers
 } = require("../../controllers/fyp/fyp.controller");
 
 // POST route to create a new FYP
@@ -25,4 +26,5 @@ router.get("/downloadFile/:fileName", downloadFile);
 router.post("/share-fyp", shareFyp);
 router.get("/shared-fyps", getFypsSharedWithUser);
 router.put("/update-fyp/:fypId?", updateFyp);
+router.put("/update-members/:fypId", updateMembers);
 module.exports = router;

@@ -1,7 +1,7 @@
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const User = require("../../models/User/user.modal");
-const crypto = require("crypto"); 
+const crypto = require("crypto");
 const nodemailer = require("nodemailer");
 
 const JWT_SECRET = "fms";
@@ -11,7 +11,7 @@ const REFRESH_TOKEN_EXPIRATION_TIME = "7d";
 // Signup function
 const signup = async (req, res) => {
   try {
-    const { firstName, lastName, username, email, phone, password} = req.body;
+    const { firstName, lastName, username, email, phone, password } = req.body;
 
     if (!firstName || !lastName || !email || !phone || !password) {
       return res.status(400).json({ message: "All fields are required" });
@@ -29,11 +29,10 @@ const signup = async (req, res) => {
       email,
       phone,
       password,
-      
     });
 
     await newUser.save();
-    
+
     const access_token = jwt.sign(
       { userId: newUser._id, email: newUser.email },
       JWT_SECRET,
@@ -56,7 +55,6 @@ const signup = async (req, res) => {
         username: newUser.username,
         email: newUser.email,
         phone: newUser.phone,
-        
       },
       status_code: 201,
     });
@@ -69,7 +67,8 @@ const signup = async (req, res) => {
 // Signin function
 const signin = async (req, res) => {
   try {
-    const { email, password: loginPassword } = req.body;
+    const { email, password: loginPassword, isAdmin } = req.body;
+    let admin = isAdmin || false;
 
     if (!email || !loginPassword) {
       return res
@@ -77,23 +76,29 @@ const signin = async (req, res) => {
         .json({ message: "Email and password are required" });
     }
 
-    const user = await User.findOne({ email });
+    let user;
+    if (admin) {
+      user = await User.findOne({ email, isAdmin: admin });
+    } else {
+      user = await User.findOne({ email });
+    }
+
     if (!user) {
       return res.status(400).json({ message: "Email not found" });
     }
 
-     const isMatch = await user.matchPassword(loginPassword);;
+    const isMatch = await user.matchPassword(loginPassword);
     if (!isMatch) {
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
     const access_token = jwt.sign(
-      { userId: user._id, email: user.email },
+      { userId: user._id, email: user.email, isAdmin: admin },
       JWT_SECRET,
       { expiresIn: JWT_EXPIRATION_TIME }
     );
     const refresh_token = jwt.sign(
-      { userId: user._id, email: user.email },
+      { userId: user._id, email: user.email, isAdmin: admin },
       JWT_SECRET,
       { expiresIn: REFRESH_TOKEN_EXPIRATION_TIME }
     );
@@ -109,10 +114,10 @@ const signin = async (req, res) => {
         email: user.email,
         phone: user.phone,
         profile_picture: user.profile_picture,
-
+        isAdmin: user.isAdmin,
       },
-      status_code: 201, 
-    });   
+      status_code: 201,
+    });
   } catch (error) {
     console.error("Error during login:", error);
     return res.status(500).json({ message: "Server error, please try again" });
@@ -145,7 +150,7 @@ const forgotPassword = async (req, res) => {
       secure: true,
       port: 465,
       auth: {
-        user: "www.abdulwahid75552@gmail.com", 
+        user: "www.abdulwahid75552@gmail.com",
         pass: "qxed lnsz bmph skgo",
       },
     });
@@ -238,10 +243,9 @@ const passwordRecovery = async (req, res) => {
   }
 };
 
-
 const getUserDetails = async (req, res) => {
   try {
-    const { id } = req.query; 
+    const { id } = req.query;
 
     if (!id) {
       return res.status(400).json({ message: "User ID is required" });
@@ -286,15 +290,13 @@ const updateUserDetails = async (req, res) => {
       desegnation,
     } = req.body;
 
-    const file = req?.file?.filename; 
+    const file = req?.file?.filename;
     console.log("File: ", req.file);
 
     if (!firstName || !lastName || !email || !phone) {
-      return res
-        .status(400)
-        .json({
-          message: "First name, last name, email, and phone are required",
-        });
+      return res.status(400).json({
+        message: "First name, last name, email, and phone are required",
+      });
     }
 
     const existingUser = await User.findById(id);
@@ -333,8 +335,6 @@ const updateUserDetails = async (req, res) => {
     return res.status(500).json({ message: "Server error, please try again" });
   }
 };
-
-
 
 module.exports = {
   signup,
