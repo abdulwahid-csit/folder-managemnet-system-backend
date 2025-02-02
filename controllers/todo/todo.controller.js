@@ -82,12 +82,12 @@ const getTodoCount = async (req, res) => {
   try {
     const userId = req.user.userId;
    var totalTodos;
-    if(req.user.isAdmin){
-      totalTodos = await Todo.countDocuments();
-    }else{
-       totalTodos = await Todo.countDocuments({ userId });
-    }
-
+    // if(req.user.isAdmin){
+    //   totalTodos = await Todo.countDocuments();
+    // }else{
+    // }
+    
+    totalTodos = await Todo.countDocuments({ userId });
     var pendingTodos;
      if(req.user.isAdmin){
       pendingTodos = await Todo.countDocuments({
